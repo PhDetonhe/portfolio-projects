@@ -1,509 +1,501 @@
-VISÃO GERAL DO SISTEMA
+# Mentor Maker SESI
 
-Seu projeto é basicamente isso:
+AI-powered educational assistance system integrating **Flask**, **ESP32**, **Whisper**, and the **Pepper Robot** for real-time classroom support and interactive tutoring.
 
-ESP32 → Flask (servidor) → Pepper (robô) → IA → resposta → tablet
+---
 
-Fluxo real:
+# Overview
 
-ESP32 detecta grupo → manda pro servidor
-Flask organiza fila/prioridade
-Pepper pede próximo grupo (/next)
-Pepper vai até o grupo
-Aluno fala → Pepper escuta (ASR)
-Pepper envia frase pra IA (/pergunta)
-IA responde
-Pepper fala resposta
-Atendimento encerra → Pepper volta pra base
-🧰 O QUE VOCÊ PRECISA INSTALAR (DO ZERO)
-💻 1. Sistema operacional
-Windows 10/11 (ok)
-Ou Linux (melhor, mas opcional)
-🐍 2. Python
+The system architecture works like this:
 
-Instale:
+```text
+ESP32 → Flask Server → Pepper Robot → AI → Response → Tablet Interface
+```
 
-Python 3.10 ou 3.11 (não usa 3.12, pode dar dor de cabeça)
+Real workflow:
 
-👉 Marcar:
-✔ Add to PATH
+1. ESP32 detects a group request
+2. Flask server manages queue and priorities
+3. Pepper requests the next group
+4. Pepper navigates to the group
+5. Student asks a question using voice input
+6. Whisper transcribes the audio
+7. The AI generates a response
+8. Pepper speaks the answer
+9. The session ends and Pepper returns to the base
 
-📦 3. Bibliotecas Python
+---
 
-No terminal:
+# Main Features
 
-pip install flask requests
+* Real-time educational assistance
+* Voice interaction with students
+* Queue and priority management
+* Emergency request system
+* Pepper autonomous movement
+* Audio transcription using Whisper
+* AI-generated educational responses
+* Persistent SQLite database
+* Live monitoring dashboard
+* Conversation history system
+* Web tablet interface
+* ESP32 hardware integration
 
-Se quiser garantir:
+---
 
-pip install flask requests urllib3
-🌐 4. Servidor Flask
+# Technologies Used
 
-Seu arquivo:
+## Backend
 
-server.py
+* Python
+* Flask
+* SQLite
+* Requests
+* OpenRouter API
+* Whisper AI
 
-Rodar:
+## Frontend
 
+* HTML5
+* CSS3
+* JavaScript
+* Chart.js
+
+## Hardware
+
+* ESP32
+* Pepper Robot
+* LEDs
+* Potentiometer
+* Buzzer
+* Push Buttons
+
+---
+
+# Installation
+
+## 1. Python
+
+Install:
+
+* Python 3.10 or 3.11
+
+Make sure to enable:
+
+```text
+Add Python to PATH
+```
+
+---
+
+## 2. Install Dependencies
+
+```bash
+pip install flask requests openai-whisper
+```
+
+Optional:
+
+```bash
+pip install urllib3
+```
+
+---
+
+## 3. Run the Flask Server
+
+```bash
 python server.py
+```
 
-Tem que aparecer:
+Expected output:
 
+```text
 Running on http://0.0.0.0:5000
-🤖 5. Pepper (NAOqi / Choregraphe)
+```
 
-Você precisa:
+---
 
-Choregraphe instalado
-Conectar no IP do Pepper
-Rodar seu script Python dentro dele
+# Pepper Setup
 
-Serviços usados:
+Required:
 
-ALMotion
-ALTextToSpeech
-ALSpeechRecognition
-ALMemory
-ALTabletService
-📡 6. Rede (MUITO IMPORTANTE)
+* Choregraphe
+* NAOqi SDK
+* Pepper connected to the same Wi-Fi network
 
-Tudo precisa estar na mesma rede Wi-Fi:
+Services used:
 
-Dispositivo	Deve acessar
-Notebook	localhost:5000
-Pepper	IP_DO_NOTEBOOK:5000
-ESP32	IP_DO_NOTEBOOK:5000
-🔥 7. Descobrir seu IP
+* ALMotion
+* ALTextToSpeech
+* qi.PeriodicTask
 
-No Windows:
+---
 
+# Network Configuration
+
+All devices must be connected to the same network.
+
+| Device   | Must Access      |
+| -------- | ---------------- |
+| Notebook | localhost:5000   |
+| Pepper   | NOTEBOOK_IP:5000 |
+| ESP32    | NOTEBOOK_IP:5000 |
+
+---
+
+# Discover Your Local IP
+
+Windows:
+
+```bash
 ipconfig
+```
 
-Procure:
+Find:
 
+```text
 IPv4 Address: 192.168.x.x
+```
 
-E coloque aqui no Pepper:
+Update Pepper configuration:
 
+```python
 self.base_url = "http://192.168.x.x:5000"
-📁 ESTRUTURA DE PASTAS
-/projeto
+```
+
+And ESP32:
+
+```cpp
+const char* serverUrl = "http://192.168.x.x:5000/update";
+```
+
+---
+
+# Project Structure
+
+```text
+/project
 │
 ├── server.py
+│
 ├── templates/
+│   ├── base.html
 │   ├── index.html
 │   └── dashboard.html
 │
 ├── static/
-│   ├── home.js
-│   └── style.css
+│   ├── js/
+│   │   ├── home.js
+│   │   └── dashboard.js
+│   │
+│   └── css/
+│       └── app.css
 │
-└── pepper/
-    └── scriptComTablet.py
-⚙️ FLUXO COMPLETO (DETALHADO)
-🟡 1. ESP32
+├── pepper/
+│   └── pepper_script.py
+│
+└── esp32/
+    └── esp32_controller.ino
+```
 
-Ele chama:
+---
 
+# System Workflow
+
+## 1. ESP32 Request
+
+ESP32 sends:
+
+```http
 /update?grupo=1&nivel=2&urgente=0
+```
 
-Servidor:
+Server:
 
-adiciona na fila
-define prioridade
-🔵 2. Pepper pede próximo grupo
+* Adds group to queue
+* Updates priority
+* Stores level in database
 
-Loop chama:
+---
 
+## 2. Pepper Requests Next Group
+
+Pepper calls:
+
+```http
 /next
+```
 
-Servidor responde:
+Server response:
 
-{ "grupo": 1 }
+```json
+{
+  "grupo": 1
+}
+```
 
-E muda:
+System mode changes to:
 
-modo = "indo"
-🟢 3. Pepper se move
+```text
+indo
+```
 
-Função:
+---
 
+## 3. Pepper Navigation
+
+Pepper executes:
+
+```python
 ir_para_grupo()
+```
 
-Ele:
+Robot:
 
-anda no corredor
-vira
-anda até o grupo
-🟣 4. Atendimento começa
+* Rotates
+* Moves to the selected group
+* Starts the session
 
-Pepper chama:
+---
 
+## 4. Session Start
+
+Pepper calls:
+
+```http
 /atendimento_start?grupo=1
+```
 
-Servidor:
+Server mode:
 
-modo = "atendendo"
-🎤 5. Reconhecimento de voz
+```text
+atendendo
+```
 
-Modo livre:
+---
 
-self.asr.setVocabulary([], True)
+## 5. Voice Recognition
 
-Sistema:
+Frontend records audio and sends:
 
-vai acumulando palavras
-detecta silêncio (5s)
-monta frase completa
-🧠 6. Pergunta vai pra IA
-POST /pergunta
+```http
+POST /audio
+```
 
-Servidor:
+Server:
 
-chama OpenRouter
-gera resposta
-fallback se der erro
-🗣️ 7. Pepper responde
+* Receives audio
+* Uses Whisper transcription
+* Extracts text
+
+---
+
+## 6. AI Response
+
+Server sends the question to OpenRouter AI.
+
+Features:
+
+* Educational assistant personality
+* Short beginner-friendly explanations
+* Automatic fallback responses if API fails
+
+---
+
+## 7. Pepper Response
+
+Pepper speaks the generated response:
+
+```python
 tts.say(resposta)
-🔴 8. Encerramento
+```
 
-Agora você tem DOIS caminhos:
+---
 
-✔ Automático (após resposta)
+## 8. Session Ending
 
-Pepper chama:
+Two possible ways:
 
-/encerrar_manual
+### Automatic
 
-Servidor:
+Pepper calls:
 
-modo = "voltando"
-✔ Manual (botão no tablet)
-
-Frontend chama:
-
+```http
 POST /encerrar_manual
-🔁 9. Pepper volta
+```
 
-Loop detecta:
+### Manual
 
+Tablet button triggers:
+
+```http
+POST /encerrar_manual
+```
+
+---
+
+## 9. Return to Base
+
+Pepper detects:
+
+```text
 modo == "voltando"
+```
 
-Executa:
+Executes:
 
+```python
 voltar_base()
-desfaz movimento
-chega na base
-chama:
+```
+
+Then calls:
+
+```http
 POST /retorno_concluido
+```
 
-Servidor:
+System mode becomes:
 
-modo = "ouvindo"
-⚠️ COISAS QUE VOCÊ PRECISA TESTAR ANTES DA COMPETIÇÃO
-🔥 CRÍTICO
-1. Rede
-Pepper acessa o servidor?
-ESP32 acessa?
+```text
+ouvindo
+```
 
-👉 Testa no navegador do Pepper:
+---
 
-http://IP:5000
-2. IA funcionando
-API KEY válida?
-resposta vem?
-3. Movimento
-distâncias corretas?
-não bate em ninguém?
-4. ASR (voz)
-ambiente silencioso?
-microfone ok?
+# Dashboard Features
 
-👉 Se der ruim: usa botão + texto fixo
+The dashboard provides:
 
-5. Botão encerrar
-aparece?
-chama endpoint?
-💡 MELHORIAS RÁPIDAS (SE DER TEMPO)
-🔹 Colocar timeout de atendimento
-🔹 Melhorar prompt da IA
-🔹 Mostrar pergunta no tablet
-🔹 Adicionar som ao detectar voz
+* Live system monitoring
+* Queue visualization
+* Attendance history
+* Group statistics
+* Average session duration
+* Hourly activity charts
+* Conversation history viewer
+* Real-time status updates
 
-🧨 PROBLEMAS COMUNS
-Problema	          Causa
-Pepper não responde	  IP errado
-IA não responde	      API key inválida
-Não escuta	          ASR bugado
-Não volta	          endpoint não chamado
-Travando	          processando mal controlado
+---
 
-# ############################ #
-PRA FUNCIONAR LLAMA CPP 
+# Database
 
-Git ✅
-CMake ✅
-C++ Build Tools ✅
+SQLite stores:
 
+## Tables
 
+### atendimentos
 
+Stores session history.
 
+### conversas
 
+Stores all student and AI messages.
 
------------------------------------------------------------------------------------------------------------------------
-// ============================================================
-// ⚠️ CONFIGURAÇÕES QUE PRECISAM SER ALTERADAS NA COMPETIÇÃO
-// ============================================================
-//
-// ─────────────────────────────────────────────────────────────
-// [ESP32]
-// ─────────────────────────────────────────────────────────────
-//
-// const char* ssid = "makerthon";
-//
-// ⚠️ ALTERAR:
-// Nome da rede Wi-Fi da competição.
-//
-// Exemplo:
-// const char* ssid = "SESI_EVENTO";
-//
-//
-// ------------------------------------------------------------
-//
-// const char* password = "12345678";
-//
-// ⚠️ ALTERAR:
-// Senha do Wi-Fi da competição.
-//
-// Exemplo:
-// const char* password = "senha_evento";
-//
-//
-// ------------------------------------------------------------
-//
-// const char* serverUrl = "http://192.168.137.59:5000/update";
-//
-// ⚠️ ALTERAR:
-// IP do computador rodando o Flask.
-//
-// COMO DESCOBRIR:
-// Windows CMD:
-// ipconfig
-//
-// Procurar:
-// "Endereço IPv4"
-//
-// Exemplo:
-// 192.168.0.25
-//
-// Então ficará:
-// const char* serverUrl = "http://192.168.0.25:5000/update";
-//
-//
-// ------------------------------------------------------------
-//
-// #define GRUPO 1
-//
-// ⚠️ ALTERAR:
-// Número do grupo da ESP atual.
-//
-// Exemplo:
-// ESP do grupo 2:
-// #define GRUPO 2
-//
-//
-// ------------------------------------------------------------
-//
-// const int LED_PINS[NUM_LEDS] = {...}
-//
-// ⚠️ ALTERAR SOMENTE SE:
-// - trocar fios
-// - trocar GPIOs
-// - mudar montagem da fita/LEDs
-//
-//
-// ------------------------------------------------------------
-//
-// #define BOTAO_ENVIO 5
-// #define BOTAO_URGENTE 18
-// #define POT 34
-//
-// ⚠️ ALTERAR SOMENTE SE:
-// os componentes forem ligados em outras portas.
-//
-//
-// ------------------------------------------------------------
-//
-// const unsigned long timeoutLED = 10000;
-//
-// ⚠️ ALTERAR SE QUISER:
-// tempo para apagar LEDs por inatividade.
-//
-// 10000 = 10 segundos
-//
-//
-// ------------------------------------------------------------
-//
-// unsigned long sendCooldown = 3000;
-//
-// ⚠️ ALTERAR SE NECESSÁRIO:
-// intervalo mínimo entre envios.
-//
-// 3000 = 3 segundos
-//
-// ============================================================
-// ⚠️ CONFIGURAÇÕES DO PEPPER
-// ============================================================
-//
-// self.base_url = "http://10.121.235.45:5000"
-//
-// ⚠️ ALTERAR:
-// IP do computador rodando o Flask.
-//
-// MESMO IP usado no ESP32.
-//
-// Exemplo:
-// self.base_url = "http://192.168.0.25:5000"
-//
-//
-// ============================================================
-// ⚠️ DISTÂNCIAS / MOVIMENTAÇÃO DO ROBÔ
-// ============================================================
-//
-// DISTANCIA_CORREDOR = 1.5
-//
-// ⚠️ ALTERAR:
-// distância até o ponto de decisão.
-//
-// Unidade:
-// METROS
-//
-// Exemplo:
-// corredor maior:
-// DISTANCIA_CORREDOR = 2.0
-//
-//
-// ------------------------------------------------------------
-//
-// DISTANCIA_FINAL = 1.5
-//
-// ⚠️ ALTERAR:
-// distância do ponto de decisão até o grupo.
-//
-// Unidade:
-// METROS
-//
-//
-// ------------------------------------------------------------
-//
-// ANGULO_90 = 1.57
-//
-// ⚠️ NORMALMENTE NÃO PRECISA ALTERAR.
-//
-// 1.57 rad ≈ 90 graus
-//
-// MAS pode ajustar se:
-// - Pepper estiver virando torto
-// - piso escorregar
-// - espaço da competição mudar
-//
-//
-// ============================================================
-// ⚠️ MAPEAMENTO DOS GRUPOS
-// ============================================================
-//
-// if grupo == 1:
-//     motion.moveTo(0, 0, -ANGULO_90)
-//
-// elif grupo == 2:
-//     motion.moveTo(0, 0, ANGULO_90)
-//
-// ⚠️ ALTERAR SE:
-// posição física dos grupos mudar.
-//
-// Exemplo:
-// grupo 1 ficar à esquerda:
-// trocar sinais.
-//
-//
-// ============================================================
-// ⚠️ OPENROUTER / IA
-// ============================================================
-//
-// API_KEY = ""
-//
-// ⚠️ ALTERAR:
-// chave da API OpenRouter.
-//
-// Exemplo:
-// API_KEY = "sk-or-v1-xxxxxxxx"
-//
-//
-// ------------------------------------------------------------
-//
-// "model": "openai/gpt-oss-120b"
-//
-// ⚠️ OPCIONAL:
-// trocar modelo da IA.
-//
-// Exemplo:
-// "openai/gpt-4.1-mini"
-//
-//
-// ============================================================
-// ⚠️ PORTA DO FLASK
-// ============================================================
-//
-// app.run(host="0.0.0.0", port=5000)
-//
-// ⚠️ NORMALMENTE NÃO ALTERAR.
-//
-// Mas se a porta 5000 estiver ocupada:
-//
-// app.run(host="0.0.0.0", port=8000)
-//
-// E então mudar:
-//
-// ESP32:
-// :8000/update
-//
-// Pepper:
-// :8000
-//
-//
-// ============================================================
-// ⚠️ COISAS IMPORTANTES PRA TESTAR ANTES DA COMPETIÇÃO
-// ============================================================
-//
-// ✅ Pepper conectado no mesmo Wi-Fi
-// ✅ ESP32 conectando no Wi-Fi
-// ✅ Flask rodando
-// ✅ Firewall liberado
-// ✅ IP correto
-// ✅ Movimento calibrado
-// ✅ Distâncias calibradas
-// ✅ Microfone funcionando
-// ✅ TTS funcionando
-// ✅ Dashboard abrindo
-// ✅ Botão urgente funcionando
-// ✅ Fila funcionando
-// ✅ Retorno à base funcionando
-//
-// ============================================================
-// ⚠️ COMANDO RÁPIDO PRA PEGAR O IP
-// ============================================================
-//
-// WINDOWS:
-//
-// ipconfig
-//
-// Procurar:
-//
-// Adaptador Wi-Fi
-// Endereço IPv4
-//
-// Exemplo:
-//
-// IPv4: 192.168.0.25
-//
-// ============================================================
+### niveis_grupo
+
+Stores current priority levels.
+
+---
+
+# Hardware Features
+
+## ESP32
+
+* Potentiometer priority control
+* Emergency mode button
+* LED indicators
+* Audio feedback buzzer
+* Wi-Fi communication
+
+## Pepper
+
+* Autonomous movement
+* Voice interaction
+* Speech synthesis
+* Group navigation
+
+---
+
+# Important Endpoints
+
+| Endpoint             | Description                |
+| -------------------- | -------------------------- |
+| `/update`            | ESP32 sends queue updates  |
+| `/next`              | Pepper requests next group |
+| `/audio`             | Audio transcription        |
+| `/pergunta`          | AI question processing     |
+| `/historico`         | Session history            |
+| `/resumo`            | System summary             |
+| `/fila_display`      | Queue visualization        |
+| `/stats/por_grupo`   | Group statistics           |
+| `/stats/linha_tempo` | Hourly statistics          |
+
+---
+
+# Things to Test Before Demonstrations
+
+## Critical Tests
+
+### Network
+
+* Pepper can access Flask server
+* ESP32 can access Flask server
+
+### AI
+
+* API key valid
+* Responses generated correctly
+
+### Movement
+
+* Distances calibrated
+* Safe navigation
+
+### Audio
+
+* Microphone working
+* Whisper transcription accuracy
+
+### Dashboard
+
+* Real-time updates working
+* Database persistence working
+
+---
+
+# Common Problems
+
+| Problem                     | Possible Cause              |
+| --------------------------- | --------------------------- |
+| Pepper not responding       | Wrong IP                    |
+| AI not responding           | Invalid API key             |
+| Audio transcription failing | Whisper issue               |
+| Pepper not returning        | Endpoint not called         |
+| System freezing             | State synchronization issue |
+
+---
+
+# Future Improvements
+
+* Smarter queue algorithms
+* Better AI prompts
+* Improved Pepper navigation
+* Timeout system
+* Multi-language support
+* Computer vision integration
+* Real-time classroom analytics
+
+---
+
+# Authors
+
+Developed as an educational robotics and AI integration project using:
+
+* Pepper Robot
+* ESP32
+* Flask
+* Whisper
+* OpenRouter AI
+* SQLite
+* Web Technologies
