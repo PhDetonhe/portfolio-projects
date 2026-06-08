@@ -1,55 +1,112 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  Grupo 1 — Painel fisico
+//  Refatorado: debounce corrigido, beep do buzzer não-bloqueante, LEDC atualizado(tirar o ledc acaso de erro)
+// ─────────────────────────────────────────────────────────────────────────────
+
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-const char* ssid     = "TEATRO";
-const char* password = "TEATRO@2026@";
+// ─── CONFIGURAÇÕES ───────────────────────────────────────────────────────────
+const char* SSID       = "Desktop_F3722992";
+const char* PASSWORD   = "Pm09141520";
+const char* SERVER_URL = "http://192.168.1.12:5000/update";
 
-const char* serverUrl = "http://172.16.80.82:5000/update";
+constexpr int GRUPO = 1;
 
-#define BOTAO_ENVIO   5
-#define BOTAO_URGENTE 18
-#define POT           34
+// ─── PINOS ───────────────────────────────────────────────────────────────────
+constexpr int PINO_BOTAO_ENVIO   = 5;
+constexpr int PINO_BOTAO_URGENTE = 18;
+constexpr int PINO_POT           = 34;
+constexpr int PINO_LED_ENVIO     = 21;
+constexpr int PINO_BUZZER        = 23;
 
-#define LED_ENVIO     21
-#define BUZZER        23
-
-#define NUM_LEDS 12
-#define GRUPO    1
-
+constexpr int NUM_LEDS = 12;
 const int LED_PINS[NUM_LEDS] = {
   13, 12, 14, 27, 26, 25,
-  33, 32, 15, 2, 22, 19
+  33, 32, 15,  2, 22, 19
 };
 
-unsigned long lastDebounceEnvio   = 0;
-unsigned long lastDebounceUrgente = 0;
-unsigned long debounceDelay       = 50;
-unsigned long lastSendTime        = 0;
-unsigned long sendCooldown        = 3000;
+// ─── TEMPORIZAÇÃO ────────────────────────────────────────────────────────────
+constexpr unsigned long DEBOUNCE_MS    = 50;
+constexpr unsigned long COOLDOWN_MS    = 3000;
+constexpr unsigned long TIMEOUT_LED_MS = 10000;
+constexpr unsigned long LED_ENVIO_MS   = 300;
 
-bool lastEnvioState   = HIGH;
-bool lastUrgenteState = HIGH;
-bool envioState       = HIGH;
-bool urgenteState     = HIGH;
-bool urgente          = false;
+// ─── ESTADO GLOBAL ───────────────────────────────────────────────────────────
+struct Botao {
+  const int  pino;
+  bool       estadoAtual    = HIGH;
+  bool       estadoAnterior = HIGH;
+  unsigned long ultimoDebounce = 0;
+};
 
+Botao botaoEnvio   = { PINO_BOTAO_ENVIO };
+Botao botaoUrgente = { PINO_BOTAO_URGENTE };
+
+bool         urgente          = false;
+unsigned long ultimoEnvio     = 0;
+
+// Potenciômetro / LEDs de nível
+int          ultimoValorPot      = 0;
 unsigned long ultimoMovimentoPot = 0;
-const unsigned long timeoutLED   = 10000;
-int  ultimoValorPot              = 0;
-bool ledsAtivos                  = false;
+bool         ledsAtivos          = false;
 
-unsigned long tempoLedEnvio = 0;
-bool ledEnvioLigado         = false;
+// LED de envio
+bool          ledEnvioLigado = false;
+unsigned long tempoLedEnvio  = 0;
 
-// ─── BEEP via LEDC (funciona no ESP32) ─────────────────────────────────────
-void beep(int freq, int duracao) {
-  ledcWriteTone(0, freq);
-  ledcWrite(0, 128);       // duty 50%
-  delay(duracao);
-  ledcWrite(0, 0);         // silencia
+// ─── BEEP NÃO-BLOQUEANTE ─────────────────────────────────────────────────────
+// Sequência: array de pares {frequência, duração}. 0 Hz = silêncio.
+struct Nota { int freq; int duracao; };
+
+constexpr int MAX_NOTAS = 4;
+Nota   filaNotas[MAX_NOTAS];
+int    totalNotas  = 0;
+int    notaAtual   = 0;
+unsigned long inicioNota = 0;
+bool   beepAtivo   = false;
+
+void enfileirarBeep(const Nota* notas, int qtd) {
+  qtd = min(qtd, MAX_NOTAS);
+  for (int i = 0; i < qtd; i++) filaNotas[i] = notas[i];
+  totalNotas = qtd;
+  notaAtual  = 0;
+  inicioNota = millis();
+  beepAtivo  = true;
+  ledcWriteTone(PINO_BUZZER, notas[0].freq);
 }
 
-// ─── LEDS ───────────────────────────────────────────────────────────────────
+void processarBeep() {
+  if (!beepAtivo) return;
+  if (millis() - inicioNota >= (unsigned long)filaNotas[notaAtual].duracao) {
+    notaAtual++;
+    if (notaAtual >= totalNotas) {
+      ledcWriteTone(PINO_BUZZER, 0);
+      beepAtivo = false;
+      return;
+    }
+    inicioNota = millis();
+    ledcWriteTone(PINO_BUZZER, filaNotas[notaAtual].freq);
+  }
+}
+
+// Sequências predefinidas
+void beepEnvio() {
+  static const Nota seq[] = { {2000, 120}, {0, 1} };
+  enfileirarBeep(seq, 2);
+}
+
+void beepUrgenteOn() {
+  static const Nota seq[] = { {800, 100}, {0, 60}, {800, 100}, {0, 1} };
+  enfileirarBeep(seq, 4);
+}
+
+void beepUrgenteOff() {
+  static const Nota seq[] = { {1200, 80}, {0, 40}, {600, 120}, {0, 1} };
+  enfileirarBeep(seq, 4);
+}
+
+// ─── LEDS DE NÍVEL ───────────────────────────────────────────────────────────
 void atualizarLEDs(int nivel) {
   nivel = constrain(nivel, 0, NUM_LEDS);
   for (int i = 0; i < NUM_LEDS; i++)
@@ -61,173 +118,164 @@ void apagarLEDs() {
     digitalWrite(LED_PINS[i], LOW);
 }
 
-// ─── FEEDBACK BOTÃO ENVIO ──────────────────────────────────────────────────
-void acionarFeedbackBotao() {
-  digitalWrite(LED_ENVIO, HIGH);
-  ledEnvioLigado = true;
-  tempoLedEnvio  = millis();
-  beep(2000, 120);   // tom agudo, 120ms
-}
-
-// ─── FEEDBACK BOTÃO URGENTE ────────────────────────────────────────────────
-void acionarFeedbackUrgente(bool estadoUrgente) {
-  if (estadoUrgente) {
-    // URGENTE ON: dois beeps graves
-    beep(800, 100);
-    delay(60);
-    beep(800, 100);
-  } else {
-    // URGENTE OFF: beep descendente
-    beep(1200, 80);
-    delay(40);
-    beep(600, 120);
-  }
-}
-
-// ─── WIFI ───────────────────────────────────────────────────────────────────
+// ─── WIFI ────────────────────────────────────────────────────────────────────
 void garantirWiFi() {
   if (WiFi.status() == WL_CONNECTED) return;
   Serial.println("🔄 Reconectando WiFi...");
   WiFi.disconnect();
-  WiFi.begin(ssid, password);
-  int tentativas = 0;
-  while (WiFi.status() != WL_CONNECTED && tentativas < 10) {
+  WiFi.begin(SSID, PASSWORD);
+  for (int i = 0; i < 10 && WiFi.status() != WL_CONNECTED; i++) {
     Serial.print(".");
     delay(500);
-    tentativas++;
   }
-  if (WiFi.status() == WL_CONNECTED)
-    Serial.println("\n✅ WiFi conectado!");
-  else
-    Serial.println("\n❌ Falha ao conectar WiFi");
+  Serial.println(WiFi.status() == WL_CONNECTED ? "\n✅ WiFi conectado!" : "\n❌ Falha ao conectar WiFi");
 }
 
-// ─── ENVIO HTTP ─────────────────────────────────────────────────────────────
+// ─── ENVIO HTTP ──────────────────────────────────────────────────────────────
 void enviarDados(int nivel) {
   garantirWiFi();
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("❌ Sem WiFi - envio cancelado");
+    Serial.println("❌ Sem WiFi — envio cancelado");
     return;
   }
+
+  String url = String(SERVER_URL)
+             + "?grupo="   + GRUPO
+             + "&nivel="   + nivel
+             + "&urgente=" + (urgente ? 1 : 0);
+
+  Serial.println("\n📤 ENVIANDO: " + url);
+
   HTTPClient http;
-  String url = String(serverUrl) +
-               "?grupo=" + GRUPO +
-               "&nivel=" + nivel +
-               "&urgente=" + String(urgente ? 1 : 0);
-  Serial.println("\n📤 ENVIANDO DADOS:");
-  Serial.println(url);
-  for (int i = 0; i < 3; i++) {
+  bool sucesso = false;
+  for (int tentativa = 1; tentativa <= 3 && !sucesso; tentativa++) {
     http.begin(url);
     int code = http.GET();
-    Serial.print("Tentativa "); Serial.print(i + 1);
-    Serial.print(" | HTTP Code: "); Serial.println(code);
-    if (code > 0) {
-      Serial.println("✅ Enviado com sucesso!");
-      http.end();
-      return;
-    }
+    Serial.printf("  Tentativa %d | HTTP %d\n", tentativa, code);
+    if (code > 0) sucesso = true;
     http.end();
-    delay(500);
+    if (!sucesso && tentativa < 3) delay(500);
   }
-  Serial.println("❌ Falha no envio após 3 tentativas");
+
+  // Só atualiza o cooldown se o envio teve sucesso
+  if (sucesso) {
+    Serial.println("✅ Enviado com sucesso!");
+    ultimoEnvio = millis();
+  } else {
+    Serial.println("❌ Falha após 3 tentativas — cooldown não aplicado");
+  }
 }
 
-// ─── SETUP ──────────────────────────────────────────────────────────────────
+// ─── LEITURA DE BOTÃO COM DEBOUNCE ───────────────────────────────────────────
+// Retorna true apenas na borda de descida (HIGH→LOW) após debounce
+bool botaoPressionado(Botao& b) {
+  bool leitura = digitalRead(b.pino);
+
+  if (leitura != b.estadoAnterior) {
+    b.ultimoDebounce = millis();
+    b.estadoAnterior = leitura;
+  }
+
+  if ((millis() - b.ultimoDebounce) > DEBOUNCE_MS) {
+    if (leitura != b.estadoAtual) {
+      b.estadoAtual = leitura;
+      if (b.estadoAtual == LOW) return true;   // borda de descida
+    }
+  }
+  return false;
+}
+
+// ─── SETUP ───────────────────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println("=== SISTEMA INICIADO ===");
 
-  pinMode(BOTAO_ENVIO,   INPUT_PULLUP);
-  pinMode(BOTAO_URGENTE, INPUT_PULLUP);
-  pinMode(POT,           INPUT);
-  pinMode(LED_ENVIO,     OUTPUT);
-  digitalWrite(LED_ENVIO, LOW);
+  pinMode(PINO_BOTAO_ENVIO,   INPUT_PULLUP);
+  pinMode(PINO_BOTAO_URGENTE, INPUT_PULLUP);
+  pinMode(PINO_POT,           INPUT);
+  pinMode(PINO_LED_ENVIO,     OUTPUT);
+  digitalWrite(PINO_LED_ENVIO, LOW);
 
-  // ─── LEDC para o buzzer ───────────────────────────────────────────────────
-  ledcSetup(0, 2000, 8);        // canal 0, freq inicial 2kHz, 8 bits
-  ledcAttachPin(BUZZER, 0);     // anexa pino ao canal
+  // LEDC moderno (ESP32 Arduino core 3.x)
+  ledcAttach(PINO_BUZZER, 2000, 8);
 
   for (int i = 0; i < NUM_LEDS; i++) {
     pinMode(LED_PINS[i], OUTPUT);
     digitalWrite(LED_PINS[i], LOW);
   }
 
-  WiFi.begin(ssid, password);
-  Serial.println("🔌 Tentando conectar WiFi...");
+  WiFi.begin(SSID, PASSWORD);
+  Serial.println("🔌 Conectando ao WiFi...");
 }
 
-// ─── LOOP ───────────────────────────────────────────────────────────────────
+// ─── LOOP ────────────────────────────────────────────────────────────────────
 void loop() {
+  unsigned long agora = millis();
 
-  // ─── POTENCIÔMETRO ───────────────────────────────────────────────────────
-  int soma = 0;
-  for (int i = 0; i < 10; i++) { soma += analogRead(POT); delay(2); }
+  // ─── BEEP NÃO-BLOQUEANTE ─────────────────────────────────────────────────
+  processarBeep();
+
+  // ─── POTENCIÔMETRO (média de 10 leituras) ────────────────────────────────
+  long soma = 0;
+  for (int i = 0; i < 10; i++) soma += analogRead(PINO_POT);
   int valorPot = soma / 10;
 
-  if (valorPot < 80)   valorPot = 0;
+  // Clamp de ruído nas bordas
+  if (valorPot <   80) valorPot = 0;
   if (valorPot > 4015) valorPot = 4095;
 
-  int nivel = constrain(map(valorPot, 0, 4095, 0, NUM_LEDS + 1), 0, NUM_LEDS);
+  int nivel = constrain(map(valorPot, 0, 4095, 0, NUM_LEDS), 0, NUM_LEDS);
 
   if (abs(valorPot - ultimoValorPot) > 40) {
-    ultimoMovimentoPot = millis();
-    ledsAtivos         = true;
+    ultimoMovimentoPot = agora;
     ultimoValorPot     = valorPot;
+    ledsAtivos         = true;
   }
 
-  if (ledsAtivos) atualizarLEDs(nivel);
-
-  if (ledsAtivos && millis() - ultimoMovimentoPot > timeoutLED) {
-    apagarLEDs();
-    ledsAtivos = false;
-    Serial.println("💤 LEDs desligados por inatividade");
+  if (ledsAtivos) {
+    atualizarLEDs(nivel);
+    if (agora - ultimoMovimentoPot > TIMEOUT_LED_MS) {
+      apagarLEDs();
+      ledsAtivos = false;
+      Serial.println("💤 LEDs desligados por inatividade");
+    }
   }
 
-  if (ledEnvioLigado && millis() - tempoLedEnvio > 300) {
-    digitalWrite(LED_ENVIO, LOW);
+  // ─── LED DE ENVIO (auto-apaga) ────────────────────────────────────────────
+  if (ledEnvioLigado && agora - tempoLedEnvio > LED_ENVIO_MS) {
+    digitalWrite(PINO_LED_ENVIO, LOW);
     ledEnvioLigado = false;
   }
 
-  // ─── BOTÃO URGENTE ───────────────────────────────────────────────────────
-  int readUrgente = digitalRead(BOTAO_URGENTE);
-  if (readUrgente != lastUrgenteState) lastDebounceUrgente = millis();
-
-  if ((millis() - lastDebounceUrgente) > debounceDelay) {
-    if (readUrgente == LOW && urgenteState == HIGH) {
-      urgente = !urgente;
-      Serial.print("🔴 URGENTE TOGGLE: ");
-      Serial.println(urgente ? "ON (1)" : "OFF (0)");
-      ultimoMovimentoPot = millis();
-      ledsAtivos         = true;
-
-      acionarFeedbackUrgente(urgente);  // ← feedback adicionado aqui
-    }
-    urgenteState = readUrgente;
+  // ─── BOTÃO URGENTE ────────────────────────────────────────────────────────
+  if (botaoPressionado(botaoUrgente)) {
+    urgente = !urgente;
+    Serial.printf("🔴 URGENTE: %s\n", urgente ? "ON (1)" : "OFF (0)");
+    ultimoMovimentoPot = agora;
+    ledsAtivos         = true;
+    urgente ? beepUrgenteOn() : beepUrgenteOff();
   }
-  lastUrgenteState = readUrgente;
 
   // ─── BOTÃO ENVIO ─────────────────────────────────────────────────────────
-  int readEnvio = digitalRead(BOTAO_ENVIO);
-  if (readEnvio != lastEnvioState) lastDebounceEnvio = millis();
+  if (botaoPressionado(botaoEnvio)) {
+    Serial.println("📥 BOTÃO ENVIO PRESSIONADO");
 
-  if ((millis() - lastDebounceEnvio) > debounceDelay) {
-    if (readEnvio == LOW && envioState == HIGH) {
-      Serial.println("📥 BOTÃO ENVIO PRESSIONADO");
-      acionarFeedbackBotao();
-      ultimoMovimentoPot = millis();
-      ledsAtivos         = true;
+    // Feedback visual
+    digitalWrite(PINO_LED_ENVIO, HIGH);
+    ledEnvioLigado = true;
+    tempoLedEnvio  = agora;
+    beepEnvio();
 
-      if (millis() - lastSendTime > sendCooldown) {
-        Serial.print("Estado urgente atual: ");
-        Serial.println(urgente ? "1" : "0");
-        enviarDados(nivel);
-        lastSendTime = millis();
-      } else {
-        Serial.println("⏳ Cooldown ativo, não enviou");
-      }
+    ultimoMovimentoPot = agora;
+    ledsAtivos         = true;
+
+    if (agora - ultimoEnvio > COOLDOWN_MS) {
+      Serial.printf("  Urgente: %d | Nível: %d\n", urgente ? 1 : 0, nivel);
+      enviarDados(nivel);
+    } else {
+      Serial.printf("⏳ Cooldown ativo (%.1fs restante)\n",
+                    (COOLDOWN_MS - (agora - ultimoEnvio)) / 1000.0f);
     }
-    envioState = readEnvio;
   }
-  lastEnvioState = readEnvio;
 }
