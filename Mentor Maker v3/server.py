@@ -6,6 +6,15 @@ import os
 import sqlite3
 from contextlib import contextmanager
 
+# ─── FORÇA O CAMINHO DO FFMPEG ─────────────────────────────
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FFMPEG_PATH = os.path.join(BASE_DIR, "ffmpeg", "bin")
+
+os.environ["PATH"] = FFMPEG_PATH + os.pathsep + os.environ["PATH"]
+
+# ───────────────────────────────────────────────────────────
+
 app = Flask(__name__)
 
 modelo_whisper = whisper.load_model("base")
@@ -451,6 +460,7 @@ def audio():
         print("ERRO WHISPER:", e)
         estado_ia["processando"] = False
         return jsonify({"ok": False, "erro": str(e)}), 500
+
 
 
 # ─── PERGUNTA (IA) ───────────────────────────────────────────────────────────

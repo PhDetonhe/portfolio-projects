@@ -164,13 +164,36 @@ async function alternarEscuta() {
                         );
                     }
 
+                    // ─── CORREÇÃO: limpa stream e reseta estado ───────────
                     if (streamAtual) {
                         streamAtual
                             .getTracks()
-                            .forEach(track =>
-                                track.stop()
-                            );
+                            .forEach(track => track.stop());
+                        streamAtual = null;
                     }
+
+                    mediaRecorder = null;
+                    audioChunks = [];
+                    gravando = false;
+
+                    // Restaura o botão para o estado inicial
+                    document
+                        .getElementById(
+                            "toggle-listen-button"
+                        )
+                        .querySelector(
+                            ".voice-button-text"
+                        )
+                        .textContent =
+                            "Toque para falar comigo";
+
+                    if (atendimentoAtivo()) {
+                        setText(
+                            "listen-pill",
+                            "Atendendo grupo " + grupoAtual
+                        );
+                    }
+                    // ─────────────────────────────────────────────────────
                 };
 
             mediaRecorder.start();
