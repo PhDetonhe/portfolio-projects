@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar — Estações Inteligentes de Monitoramento Ambiental</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="homepage.css">
+</head>
+<body>
+
+<div class="login-page">
+
+  <div class="login-visual">
+    <div class="grid-overlay"></div>
+
+    <div class="visual-content">
+      <div class="brand">
+        <div class="brand-icon"><i class="fa-solid fa-earth-americas"></i></div>
+        <div class="brand-title">Estações Inteligentes
+          <span>de Monitoramento Ambiental</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="visual-quote">
+      <p>Monitoramento contínuo dos rios, dados em tempo real para quem cuida do meio ambiente.</p>
+      <span>Painel de controle — visão computacional aplicada à gestão ambiental</span>
+      <div class="visual-badges">
+        <div class="visual-badge"><i class="fa-solid fa-satellite-dish"></i> Estações em campo</div>
+        <div class="visual-badge"><i class="fa-solid fa-chart-line"></i> Dados em tempo real</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-form-side">
+    <div class="login-card">
+      <div class="brand" style="display:none"></div>
+
+      <h1>Entrar na sua conta</h1>
+      <p class="subtitle">Acesse o painel para acompanhar as estações de monitoramento.</p>
+
+      <form onsubmit="event.preventDefault(); window.location.href='homepage.html';">
+        <div class="field-group">
+          <label class="field-label">E-mail</label>
+          <div class="field-input">
+            <i class="fa-solid fa-envelope"></i>
+            <input type="email" placeholder="seuemail@exemplo.com" required>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Senha</label>
+          <div class="field-input">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="passInput" placeholder="Digite sua senha" required>
+            <span class="toggle-pass" onclick="togglePass()"><i class="fa-solid fa-eye" id="eyeIcon"></i></span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label class="remember">
+            <input type="checkbox"> Lembrar de mim
+          </label>
+          <a href="#" class="forgot-link">Esqueci minha senha</a>
+        </div>
+
+        <button type="submit" class="btn-primary">
+          Entrar <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+
+      <div class="login-divider">ou</div>
+
+      <button class="btn-secondary">
+        <i class="fa-brands fa-google"></i> Entrar com Google
+      </button>
+
+      <p class="signup-note">Ainda não tem acesso? <a href="#">Solicite ao administrador</a></p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function togglePass(){
+    const input = document.getElementById('passInput');
+    const icon = document.getElementById('eyeIcon');
+    if(input.type === 'password'){
+      input.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  }
+</script>
+
+</body>
+</html>

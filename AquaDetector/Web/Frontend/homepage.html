@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estações Inteligentes de Monitoramento Ambiental</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="homepage.css">
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon"><i class="fa-solid fa-earth-americas"></i></div>
+    <div class="brand-title">Estações Inteligentes
+      <span>de Monitoramento Ambiental</span>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <a href="#" class="active"><i class="fa-solid fa-house"></i> Home</a>
+    <a href="#"><i class="fa-solid fa-map"></i> Mapa</a>
+    <a href="#"><i class="fa-solid fa-satellite-dish"></i> Estações</a>
+    <a href="#"><i class="fa-solid fa-chart-line"></i> Estatísticas</a>
+    <a href="#"><i class="fa-solid fa-calendar-days"></i> Eventos</a>
+    <a href="#"><i class="fa-solid fa-triangle-exclamation"></i> Alertas</a>
+  </nav>
+
+  <div class="header-right">
+    <div class="icon-btn"><i class="fa-solid fa-moon"></i></div>
+    <div class="icon-btn"><i class="fa-solid fa-bell"></i><span class="badge">0</span></div>
+    <div class="profile">
+      <div class="avatar">A</div>
+      <div>
+        <div class="profile-name">Admin</div>
+        <div class="profile-role">Gestor</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="side-label">Visão geral</div>
+    <div class="side-item active"><span class="ic"><i class="fa-solid fa-table-cells"></i></span> Dashboard</div>
+
+    <div class="side-label">Navegação</div>
+    <div class="side-item"><span class="ic"><i class="fa-solid fa-map"></i></span> Mapa em tempo real</div>
+    <div class="side-item"><span class="ic"><i class="fa-solid fa-satellite-dish"></i></span> Estações</div>
+    <div class="side-item"><span class="ic"><i class="fa-solid fa-calendar-days"></i></span> Eventos</div>
+    <div class="side-item"><span class="ic"><i class="fa-solid fa-chart-line"></i></span> Estatísticas</div>
+    <div class="side-item"><span class="ic"><i class="fa-solid fa-triangle-exclamation"></i></span> Alertas</div>
+    <div class="side-item"><span class="ic"><i class="fa-solid fa-file-lines"></i></span> Relatórios</div>
+
+    <div class="side-label">Filtros</div>
+    <div class="filter-caption">Período</div>
+    <select class="period">
+      <option>Hoje</option>
+      <option>Últimos 7 dias</option>
+      <option>Últimos 30 dias</option>
+    </select>
+
+    <div class="filter-caption" style="margin-top:14px;">Tipos de resíduos</div>
+    <div class="checks">
+      <label class="check-row"><input type="checkbox" checked> PET</label>
+      <label class="check-row"><input type="checkbox" checked> Sacolas Plásticas</label>
+      <label class="check-row"><input type="checkbox" checked> Latas</label>
+      <label class="check-row"><input type="checkbox" checked> Papel</label>
+      <label class="check-row"><input type="checkbox" checked> Vidro</label>
+      <label class="check-row"><input type="checkbox" checked> Outros</label>
+    </div>
+
+    <button class="clear-btn"><i class="fa-solid fa-rotate-left"></i> Limpar filtros</button>
+  </aside>
+
+  <main>
+
+    <div class="grid-top">
+      <!-- MAP -->
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Mapa em tempo real</div>
+          </div>
+          <div class="status-pills">
+            <span><span class="dot"></span> 0 estações ativas</span>
+            <span><span class="dot"></span> 0 estações offline</span>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <div class="map-empty">
+            <div class="state-icon"><i class="fa-solid fa-satellite"></i></div>
+            <h4>Aguardando dados das estações</h4>
+            <p>O mapa e o mapa de calor serão preenchidos automaticamente assim que as estações começarem a enviar detecções.</p>
+          </div>
+          <div class="legend-box">
+            <p>Concentração de resíduos</p>
+            <div class="legend-bar"></div>
+            <div class="legend-labels"><span>Baixa</span><span>Alta</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EVENTS -->
+      <div class="panel events-panel">
+        <div class="panel-head">
+          <div class="panel-title">Eventos recentes</div>
+          <span class="ver-todos">Ver todos</span>
+        </div>
+        <div class="events-empty">
+          <div class="state-icon"><i class="fa-solid fa-inbox"></i></div>
+          <h4>Nenhum evento registrado</h4>
+          <p>Os eventos detectados pelas estações aparecerão aqui em tempo real.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAT CARDS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+          <div class="stat-label">Estações ativas</div>
+        </div>
+        <div class="stat-value">—</div>
+        <div class="stat-delta">Sem dados ainda</div>
+        <div class="stat-sparkline"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon"><i class="fa-solid fa-calendar-days"></i></div>
+          <div class="stat-label">Eventos hoje</div>
+        </div>
+        <div class="stat-value">—</div>
+        <div class="stat-delta">Sem dados ainda</div>
+        <div class="stat-sparkline"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon"><i class="fa-solid fa-recycle"></i></div>
+          <div class="stat-label">Resíduos detectados</div>
+        </div>
+        <div class="stat-value">—</div>
+        <div class="stat-delta">Sem dados ainda</div>
+        <div class="stat-sparkline"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon"><i class="fa-solid fa-water"></i></div>
+          <div class="stat-label">Nível da água</div>
+        </div>
+        <div class="stat-value">—</div>
+        <div class="stat-delta">Sem dados ainda</div>
+        <div class="stat-sparkline"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon"><i class="fa-solid fa-water"></i></div>
+          <div class="stat-label">Nível bateria</div>
+        </div>
+        <div class="stat-value">—</div>
+        <div class="stat-delta">Sem dados ainda</div>
+        <div class="stat-sparkline"></div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts-row">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Resíduos detectados</div>
+          <select class="period-sm"><option>Últimos 7 dias</option></select>
+        </div>
+        <div class="chart-body">
+          <div class="bars-ghost">
+            <div style="height:35%"></div>
+            <div style="height:55%"></div>
+            <div style="height:30%"></div>
+            <div style="height:60%"></div>
+            <div style="height:45%"></div>
+            <div style="height:70%"></div>
+            <div style="height:50%"></div>
+          </div>
+          <div class="chart-empty">
+            <div class="state-icon small"><i class="fa-solid fa-chart-column"></i></div>
+            <p>Nenhum dado disponível<br>ainda para este período</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Resíduos por tipo</div>
+        </div>
+        <div class="chart-body">
+          <div class="donut-ghost"></div>
+          <div class="donut-hole"></div>
+          <div class="chart-empty" style="z-index:2;">
+            <div class="state-icon small"><i class="fa-solid fa-chart-pie"></i></div>
+            <p>Nenhuma detecção<br>registrada ainda</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Nível da água (m)</div>
+          <select class="period-sm"><option>Hoje</option></select>
+        </div>
+        <div class="chart-body">
+          <svg class="line-ghost" viewBox="0 0 300 100" preserveAspectRatio="none">
+            <polyline points="0,70 40,55 80,60 120,40 160,50 200,25 240,45 300,35"
+              fill="none" stroke="#565f74" stroke-width="2"/>
+          </svg>
+          <div class="chart-empty">
+            <div class="state-icon small"><i class="fa-solid fa-water"></i></div>
+            <p>Aguardando leituras<br>do sensor de nível</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
