@@ -25,9 +25,9 @@ AquaDetector-core/
 
 ## Pré-requisitos
 
-```bash
+
 pip install ultralytics opencv-python
-```
+
 
 ## Onde colocar o modelo
 

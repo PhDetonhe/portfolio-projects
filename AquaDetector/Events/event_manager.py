@@ -10,7 +10,7 @@ a estrutura de dados em memória.
 
 from datetime import datetime, timedelta
 
-from config import config
+from Config import config
 
 
 class EventManager:
