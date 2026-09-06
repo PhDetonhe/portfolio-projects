@@ -1,0 +1,5 @@
+# Install on the development machine / Raspberry Pi with:
+# pip install -r Embedded/requirements.txt
+ultralytics>=8.3
+opencv-python>=4.8
+requests>=2.31
