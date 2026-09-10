@@ -1,6 +1,11 @@
+from datetime import datetime
+from typing import Literal
+from uuid import UUID
+
 from fastapi import FastAPI, HTTPException
 from  pymongo import MongoClient
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 app = FastAPI()
 
@@ -100,9 +105,24 @@ def delete_station(station_id: str):
 detection_events_collection = db["detection_events"]
 
 
+class DetectionEvent(BaseModel):
+    """Contrato recebido da Raspberry Pi para cada resíduo contado."""
+
+    event_id: UUID
+    station_id: int = Field(gt=0)
+    detection_type: Literal["bottle", "can", "carton", "paper", "plastic"]
+    confidence: float = Field(ge=0, le=1)
+    track_id: int = Field(gt=0)
+    detected_at: datetime
+
+
 @app.post("/api/detections")
-def create_detection_event(event: dict):
-    station_id = event.get("station_id")
+def create_detection_event(event: DetectionEvent):
+    # JSON seguro para MongoDB: UUID e data seguem como strings ISO-8601.
+    event_document = event.model_dump(mode="json") if hasattr(event, "model_dump") else event.dict()
+    event_document["event_id"] = str(event_document["event_id"])
+    event_document["detected_at"] = event.detected_at.isoformat()
+    station_id = event.station_id
 
     station = stations_collection.find_one({"station_id": station_id})
 
@@ -112,7 +132,12 @@ def create_detection_event(event: dict):
             detail="Station not found"
         )
 
-    detection_events_collection.insert_one(event)
+    # A estação pode reenviar a mesma requisição após uma falha de rede. Não
+    # incrementamos ``detections`` duas vezes para o mesmo evento.
+    if detection_events_collection.find_one({"event_id": event_document["event_id"]}):
+        return {"message": "Detection already saved", "station_id": station_id}
+
+    detection_events_collection.insert_one(event_document)
 
     stations_collection.update_one(
         {"station_id": station_id},

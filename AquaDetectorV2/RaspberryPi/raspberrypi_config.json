@@ -1,0 +1,16 @@
+{
+  "station_id": 1,
+  "backend": {
+    "base_url": "http://127.0.0.1:8000",
+    "detections_path": "/api/detections",
+    "timeout_seconds": 5,
+    "require_connection_on_startup": true
+  },
+  "camera": { "device_index": 0, "width": 1280, "height": 720, "fps": 30 },
+  "detection": {
+    "model_path": "models/best (1).pt",
+    "confidence_threshold": 0.45,
+    "image_size": 640,
+    "detection_types": ["bottle", "can", "carton", "paper", "plastic"]
+  }
+}
