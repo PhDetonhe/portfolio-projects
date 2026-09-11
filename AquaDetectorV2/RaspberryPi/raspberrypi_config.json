@@ -1,5 +1,5 @@
 {
-  "station_id": 1,
+  "station_id": 61,
   "backend": {
     "base_url": "http://127.0.0.1:8000",
     "detections_path": "/api/detections",
