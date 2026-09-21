@@ -1,6 +1,10 @@
 import { HEATMAP_CONFIG } from "./config.js";
 import { updateMarkers } from "./markers.js";
 
+export function getStationDetectionCount(station) {
+    return Number(station.detections || 0);
+}
+
 export function calculateIntensity(
     detections,
     maxDetections,
@@ -44,13 +48,13 @@ export function buildHeatData(
 ) {
     const maxDetections = Math.max(
         0,
-        ...stationList.map(station => Number(station.detections))
+        ...stationList.map(getStationDetectionCount)
     );
 
     const heatData = stationList.map(station => {
         const longitude = Number(station.location.coordinates[0]);
         const latitude = Number(station.location.coordinates[1]);
-        const detections = Number(station.detections);
+        const detections = getStationDetectionCount(station);
 
         return [
             latitude,
@@ -106,6 +110,8 @@ export function updateMap({
     markerLayer,
     stations,
     filterStations,
+    onStationSelect,
+    selectedStationId,
     config = HEATMAP_CONFIG
 }) {
     const filteredStations = filterStations(stations);
@@ -113,9 +119,12 @@ export function updateMap({
     console.log("Estações exibidas:", filteredStations.length);
 
     updateHeatmap(map, heat, filteredStations, config);
-    updateMarkers(map, markerLayer, filteredStations);
+    updateMarkers(map, markerLayer, filteredStations, onStationSelect, selectedStationId);
 }
 
-export function initializeMapEvents(map, updateVisualization) {
-    map.on("zoomend", updateVisualization);
+export function initializeMapEvents(map, updateHeatmapOnly, updateZoomIndicator) {
+    map.on("zoomend", () => {
+        updateHeatmapOnly();
+        updateZoomIndicator(map);
+    });
 }

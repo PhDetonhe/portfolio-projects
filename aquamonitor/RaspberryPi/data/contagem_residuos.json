@@ -1,0 +1,18 @@
+{
+  "station_id": 1,
+  "counts": {
+    "bottle": 7,
+    "can": 0,
+    "carton": 1,
+    "paper": 0,
+    "plastic": 3
+  },
+  "detection_types": [
+    "bottle",
+    "can",
+    "carton",
+    "paper",
+    "plastic"
+  ],
+  "updated_at": "2026-09-18T00:29:21.946942+00:00"
+}
