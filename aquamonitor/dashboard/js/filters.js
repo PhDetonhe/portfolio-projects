@@ -71,6 +71,28 @@ export function initializeFilters(stationList) {
     updateCityFilter(stationList);
 }
 
+export function refreshFilters(stationList) {
+    const selected = getFilterValues();
+    const refreshSelect = (id, values, label, previous) => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        const current = Array.from(select.options).slice(1).map(option => option.value);
+        if (JSON.stringify(current) !== JSON.stringify(values)) {
+            populateSelect(id, values, label);
+        }
+        select.value = values.includes(previous) ? previous : "";
+        return select.value;
+    };
+    const state = refreshSelect("stateFilter", getUniqueValues(stationList, "state"),
+        "Todos os estados", selected.state);
+    const stateStations = stationList.filter(station => !state || station.administrative?.state === state);
+    const city = refreshSelect("cityFilter", getUniqueValues(stateStations, "city"),
+        "Todos os municípios", selected.city);
+    const cityStations = stateStations.filter(station => !city || station.administrative?.city === city);
+    refreshSelect("districtFilter", getUniqueValues(cityStations, "district"),
+        "Todos os distritos", selected.district);
+}
+
 export function updateCityFilter(stationList) {
     const state = document.getElementById("stateFilter")?.value || "";
     const filtered = stationList.filter(station =>
@@ -126,7 +148,11 @@ export function clearFilters(stationList, updateVisualization) {
     updateVisualization();
 }
 
-export function initializeFilterEvents(stationList, updateVisualization) {
+export function initializeFilterEvents(stationList, updateVisualization, onLocationChange = () => {}) {
+    const updateLocation = () => {
+        updateVisualization();
+        onLocationChange(filterStations(stationList));
+    };
     const stateFilter = document.getElementById("stateFilter");
     const cityFilter = document.getElementById("cityFilter");
     const districtFilter = document.getElementById("districtFilter");
@@ -136,32 +162,32 @@ export function initializeFilterEvents(stationList, updateVisualization) {
     if (stateFilter) {
         stateFilter.addEventListener("change", () => {
             updateCityFilter(stationList);
-            updateVisualization();
+            updateLocation();
         });
     }
 
     if (cityFilter) {
         cityFilter.addEventListener("change", () => {
             updateDistrictFilter(stationList);
-            updateVisualization();
+            updateLocation();
         });
     }
 
     if (districtFilter) {
-        districtFilter.addEventListener("change", updateVisualization);
+        districtFilter.addEventListener("change", updateLocation);
     }
 
     if (applyButton) {
         applyButton.addEventListener(
             "click",
-            () => applyFilters(updateVisualization)
+            () => applyFilters(updateLocation)
         );
     }
 
     if (clearButton) {
         clearButton.addEventListener(
             "click",
-            () => clearFilters(stationList, updateVisualization)
+            () => clearFilters(stationList, updateLocation)
         );
     }
 }
